@@ -1,0 +1,161 @@
+<!DOCTYPE html
+	PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ko" lang="ko">
+
+<head>
+	<title>Javascript 二维码生成库：QRCode</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+	<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no" />
+	<script type="text/javascript" src="js/jquery.min.js"></script>
+	<script type="text/javascript" src="js/qrcode.min.js"></script>
+</head>
+
+<body>
+	<input id="textInput" type="text" value="生成二维码" style="width:80%" /><br />
+	<button id="create">生成二维码</button>
+	<button id="createAndDownload">生成并下载</button>
+	<br />
+	<button id="makeCodeList">每次生成10张</button>
+	<span id="demoList"></span>
+
+	<div id="qrcode" style="width:100px; height:100px; margin-top:15px;"></div>
+	<p id="demo"></p>
+
+	<script type="text/javascript">
+		var qrcode = new QRCode(document.getElementById("qrcode"), {
+			width: 100,
+			height: 100
+		});
+
+		function getBlob(base64) {
+			var mimeString = base64.split(',')[0].split(':')[1].split(';')[0]; // mime类型
+			var byteString = atob(base64.split(',')[1]); //base64 解码
+			var arrayBuffer = new ArrayBuffer(byteString.length); //创建缓冲数组
+			var intArray = new Uint8Array(arrayBuffer); //创建视图
+			for (var i = 0; i < byteString.length; i += 1) {
+				intArray[i] = byteString.charCodeAt(i);
+			}
+			return new Blob([intArray], {
+				type: mimeString
+			});
+		}
+
+		function makeCode(
+			text,
+			isDownload) {
+			let fileName
+			if (text) {
+				qrcode.makeCode(text);
+				fileName = text + ".jpg"
+			} else {
+				var elText = document.getElementById("textInput");
+
+				if (!elText.value) {
+					alert("Input a text");
+					elText.focus();
+					return;
+				}
+				qrcode.makeCode(elText.value);
+				fileName = elText.value + ".jpg"
+			}
+
+			if (isDownload) { // 下载
+				let canvas = qrcode._el.querySelector("canvas"); //获取生成二维码中的canvas，并将canvas转换成base64
+				var base64Text = canvas.toDataURL("image/png");
+				var blob = getBlob(base64Text); //将base64转换成blob对象
+
+				//接下来就是下载了，主要的思路就是通过URL.createURL()方法把blob对象转换成url，然后绑定到a标签中的href上，通过a标签的下载属性来进行下载。
+				if (navigator.msSaveBlob) {
+					// IE的Blob保存方法
+					navigator.msSaveBlob(blob, fileName);
+				} else {
+					var link = document.createElement('a');
+					var href = window.URL.createObjectURL(blob);
+					link.href = href;
+					link.download = fileName; //a标签的下载属性
+					document.body.appendChild(link); // firefox需要把a添加到dom才能正确执行click
+					link.click();
+					// 延时保证下载成功执行，否则可能下载未找到文件的问题
+					setTimeout(function () {
+						window.URL.revokeObjectURL(href); // 释放Url对象
+						document.body.removeChild(link);
+					}, 100);
+				}
+			}
+			getTime()
+
+		}
+
+		function getTime() {
+			var d = new Date();
+			var year = d.getFullYear() + '年'
+			var month = d.getMonth() + 1
+			month = month + '月'
+			var date = d.getDate() + '日'
+			var hours = d.getHours() + '时'
+			var minutes = d.getMinutes() + '分'
+			var seconds = d.getSeconds() + '秒'
+			var milliseconds = d.getMilliseconds() + '毫秒'
+			document.getElementById("demo").innerHTML = year + month + date + hours + minutes + seconds + milliseconds +
+				"二维码已生成"
+		}
+		// const array = []
+		// ["www.runoob.com1", "www.runoob.com2", "www.runoob.com3", "www.runoob.com4", "www.runoob.com5",
+		// 	"www.runoob.com6", "www.runoob.com7", "www.runoob.com8", "www.runoob.com9", "www.runoob.com10"
+		// ]
+		let j = 0
+
+		function makeCodeList() {
+
+			document.getElementById("demoList").innerHTML = `编号：${10 * j + 1}-${10 * (j + 1) + 1}  的二维码已生成`
+			console.log('///', (10 * j + 1), '***' + (10 * (j + 1) + 1))
+			for (let i = (10 * j + 1); i < (10 * (j + 1) + 1); i++) {
+				// array.push(i + '：编号')
+				// console.log('////', array)
+				makeCode(i + '编号', true)
+			}
+			j++
+
+		}
+		// for (let i = 1; i < 11; i++) {
+		// 	array.push(i + '：编号')
+		// 	console.log('////', array)
+		// }
+		// array.forEach(element => {
+		// 	makeCode(element, true)
+		// });
+
+		// let aaa = setInterval(() => {
+		// 	makeCodeList()
+		// }, 1000);
+		// makeCodeList()
+		// makeCode("编号：99");
+
+		$("#textInput")
+			// .on("blur", function () {
+			// 	makeCode();
+			// })
+			.on("keydown", function (e) {
+				if (e.keyCode == 13) {
+					makeCode();
+				}
+			});
+
+
+
+		$(document).ready(function () {
+			$("#create").click(function () {
+				makeCode()
+			});
+			$("#createAndDownload").click(function () {
+				makeCode('', true)
+			});
+			$("#makeCodeList").click(function () {
+				makeCodeList()
+			});
+
+		});
+	</script>
+</body>
+
+</html>
